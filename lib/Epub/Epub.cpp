@@ -257,6 +257,22 @@ bool Epub::parseTocNavFile() const {
   return true;
 }
 
+std::string Epub::getCssRulesCache() const { return cachePath + "/css_rules.cache"; }
+
+bool Epub::loadCssRulesFromCache() const {
+  FsFile cssCacheFile;
+  if (Storage.openFileForRead("EBP", getCssRulesCache(), cssCacheFile)) {
+    if (cssParser->loadFromCache(cssCacheFile)) {
+      cssCacheFile.close();
+      LOG_DBG("EBP", "Loaded CSS rules from cache");
+      return true;
+    }
+    cssCacheFile.close();
+    LOG_DBG("EBP", "CSS cache invalid, reparsing");
+  }
+  return false;
+}
+
 void Epub::parseCssFiles() const {
   // Maximum CSS file size we'll attempt to parse (uncompressed)
   // Larger files risk memory exhaustion on ESP32
@@ -340,7 +356,7 @@ bool Epub::load(const bool buildIfMissing, const bool skipLoadingCss) {
   // Initialize spine/TOC cache
   bookMetadataCache.reset(new BookMetadataCache(cachePath));
   // Always create CssParser - needed for inline style parsing even without CSS files
-  cssParser.reset(new CssParser(cachePath));
+  cssParser.reset(new CssParser());
 
   // Try to load existing cache first
   if (bookMetadataCache->load()) {
@@ -524,10 +540,13 @@ std::string Epub::getCoverBmpPath(bool cropped) const {
   return cachePath + "/" + coverFileName + ".bmp";
 }
 
-bool Epub::generateCoverBmp(bool cropped) const {
-  // Already generated, return true
-  if (Storage.exists(getCoverBmpPath(cropped).c_str())) {
+bool Epub::generateCoverBmp(bool cropped, bool forceRegenerate) const {
+  // Already generated, return true unless force regeneration is requested.
+  if (!forceRegenerate && Storage.exists(getCoverBmpPath(cropped).c_str())) {
     return true;
+  }
+  if (forceRegenerate) {
+    Storage.remove(getCoverBmpPath(cropped).c_str());
   }
 
   if (!bookMetadataCache || !bookMetadataCache->isLoaded()) {
@@ -562,7 +581,12 @@ bool Epub::generateCoverBmp(bool cropped) const {
       coverJpg.close();
       return false;
     }
-    const bool success = JpegToBmpConverter::jpegFileToBmpStream(coverJpg, coverBmp, cropped);
+    // Use a higher conversion target than screen size to avoid visible block/grid artifacts
+    // from aggressive downscaling in cached sleep-cover BMPs.
+    constexpr int kCoverTargetMaxWidth = 1200;
+    constexpr int kCoverTargetMaxHeight = 2000;
+    const bool success =
+        JpegToBmpConverter::jpegFileToBmpStreamWithSize(coverJpg, coverBmp, kCoverTargetMaxWidth, kCoverTargetMaxHeight);
     coverJpg.close();
     coverBmp.close();
     Storage.remove(coverJpgTempPath.c_str());
@@ -652,7 +676,8 @@ bool Epub::generateThumbBmp(int height) const {
     }
     // Use smaller target size for Continue Reading card (half of screen: 240x400)
     // Generate 1-bit BMP for fast home screen rendering (no gray passes needed)
-    int THUMB_TARGET_WIDTH = height * 0.6;
+    // Wider thumbs prevent letterboxing on themes that use full-width cover cards.
+    int THUMB_TARGET_WIDTH = static_cast<int>(height * 1.5f);
     int THUMB_TARGET_HEIGHT = height;
     const bool success = JpegToBmpConverter::jpegFileTo1BitBmpStreamWithSize(coverJpg, thumbBmp, THUMB_TARGET_WIDTH,
                                                                              THUMB_TARGET_HEIGHT);

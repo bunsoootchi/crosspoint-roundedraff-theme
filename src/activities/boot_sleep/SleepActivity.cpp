@@ -126,14 +126,14 @@ void SleepActivity::renderDefaultSleepScreen() const {
   renderer.displayBuffer(HalDisplay::HALF_REFRESH);
 }
 
-void SleepActivity::renderBitmapSleepScreen(const Bitmap& bitmap) const {
+void SleepActivity::renderBitmapSleepScreen(const Bitmap& bitmap, bool allowUpscale, bool forceScaleToViewport) const {
   int x, y;
   const auto pageWidth = renderer.getScreenWidth();
   const auto pageHeight = renderer.getScreenHeight();
   float cropX = 0, cropY = 0;
 
   LOG_DBG("SLP", "bitmap %d x %d, screen %d x %d", bitmap.getWidth(), bitmap.getHeight(), pageWidth, pageHeight);
-  if (bitmap.getWidth() > pageWidth || bitmap.getHeight() > pageHeight) {
+  if (forceScaleToViewport || bitmap.getWidth() > pageWidth || bitmap.getHeight() > pageHeight) {
     // image will scale, make sure placement is right
     float ratio = static_cast<float>(bitmap.getWidth()) / static_cast<float>(bitmap.getHeight());
     const float screenRatio = static_cast<float>(pageWidth) / static_cast<float>(pageHeight);
@@ -172,7 +172,9 @@ void SleepActivity::renderBitmapSleepScreen(const Bitmap& bitmap) const {
   const bool hasGreyscale = bitmap.hasGreyscale() &&
                             SETTINGS.sleepScreenCoverFilter == CrossPointSettings::SLEEP_SCREEN_COVER_FILTER::NO_FILTER;
 
-  renderer.drawBitmap(bitmap, x, y, pageWidth, pageHeight, cropX, cropY);
+  const int targetWidth = allowUpscale ? pageWidth : bitmap.getWidth();
+  const int targetHeight = allowUpscale ? pageHeight : bitmap.getHeight();
+  renderer.drawBitmap(bitmap, x, y, targetWidth, targetHeight, cropX, cropY);
 
   if (SETTINGS.sleepScreenCoverFilter == CrossPointSettings::SLEEP_SCREEN_COVER_FILTER::INVERTED_BLACK_AND_WHITE) {
     renderer.invertScreen();
@@ -184,13 +186,13 @@ void SleepActivity::renderBitmapSleepScreen(const Bitmap& bitmap) const {
     bitmap.rewindToData();
     renderer.clearScreen(0x00);
     renderer.setRenderMode(GfxRenderer::GRAYSCALE_LSB);
-    renderer.drawBitmap(bitmap, x, y, pageWidth, pageHeight, cropX, cropY);
+    renderer.drawBitmap(bitmap, x, y, targetWidth, targetHeight, cropX, cropY);
     renderer.copyGrayscaleLsbBuffers();
 
     bitmap.rewindToData();
     renderer.clearScreen(0x00);
     renderer.setRenderMode(GfxRenderer::GRAYSCALE_MSB);
-    renderer.drawBitmap(bitmap, x, y, pageWidth, pageHeight, cropX, cropY);
+    renderer.drawBitmap(bitmap, x, y, targetWidth, targetHeight, cropX, cropY);
     renderer.copyGrayscaleMsbBuffers();
 
     renderer.displayGrayBuffer();
@@ -214,7 +216,7 @@ void SleepActivity::renderCoverSleepScreen() const {
   }
 
   std::string coverBmpPath;
-  bool cropped = SETTINGS.sleepScreenCoverMode == CrossPointSettings::SLEEP_SCREEN_COVER_MODE::CROP;
+  const bool cropped = SETTINGS.sleepScreenCoverMode == CrossPointSettings::SLEEP_SCREEN_COVER_MODE::CROP;
 
   // Check if the current book is XTC, TXT, or EPUB
   if (StringUtils::checkFileExtension(APP_STATE.openEpubPath, ".xtc") ||
@@ -240,7 +242,7 @@ void SleepActivity::renderCoverSleepScreen() const {
       return (this->*renderNoCoverSleepScreen)();
     }
 
-    if (!lastTxt.generateCoverBmp()) {
+    if (!lastTxt.generateCoverBmp(true)) {
       LOG_ERR("SLP", "No cover image found for TXT file");
       return (this->*renderNoCoverSleepScreen)();
     }
@@ -255,12 +257,14 @@ void SleepActivity::renderCoverSleepScreen() const {
       return (this->*renderNoCoverSleepScreen)();
     }
 
-    if (!lastEpub.generateCoverBmp(cropped)) {
+    // Use non-cropped cover asset and crop at render time.
+    // This avoids artifacts seen in pre-cropped cached cover bitmaps.
+    if (!lastEpub.generateCoverBmp(false, true)) {
       LOG_ERR("SLP", "Failed to generate cover bmp");
       return (this->*renderNoCoverSleepScreen)();
     }
 
-    coverBmpPath = lastEpub.getCoverBmpPath(cropped);
+    coverBmpPath = lastEpub.getCoverBmpPath(false);
   } else {
     return (this->*renderNoCoverSleepScreen)();
   }
@@ -270,8 +274,12 @@ void SleepActivity::renderCoverSleepScreen() const {
     Bitmap bitmap(file);
     if (bitmap.parseHeaders() == BmpReaderError::Ok) {
       LOG_DBG("SLP", "Rendering sleep cover: %s", coverBmpPath.c_str());
-      renderBitmapSleepScreen(bitmap);
+      // In crop mode, do crop-to-fill at render time from the non-cropped source.
+      const bool allowUpscaleForCover = cropped;
+      const bool forceScaleForCropMode = cropped;
+      renderBitmapSleepScreen(bitmap, allowUpscaleForCover, forceScaleForCropMode);
       file.close();
+
       return;
     }
     file.close();
