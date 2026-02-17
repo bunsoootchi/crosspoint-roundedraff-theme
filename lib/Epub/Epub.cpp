@@ -257,8 +257,6 @@ bool Epub::parseTocNavFile() const {
   return true;
 }
 
-std::string Epub::getCssRulesCache() const { return cachePath + "/css_rules.cache"; }
-
 bool Epub::loadCssRulesFromCache() const {
   FsFile cssCacheFile;
   if (Storage.openFileForRead("EBP", getCssRulesCache(), cssCacheFile)) {
