@@ -1,6 +1,7 @@
 #include "RoundedRaffTheme.h"
 
 #include <GfxRenderer.h>
+#include <HalPowerManager.h>
 #include <HalStorage.h>
 #include <I18n.h>
 
@@ -9,7 +10,6 @@
 #include <string>
 #include <vector>
 
-#include "Battery.h"
 #include "RecentBooksStore.h"
 #include "components/UITheme.h"
 #include "fontIds.h"
@@ -59,12 +59,15 @@ std::string sanitizeButtonLabel(std::string label) {
 
 }  // namespace
 
-void RoundedRaffTheme::drawHeader(const GfxRenderer& renderer, Rect rect, const char* title) const {
+void RoundedRaffTheme::drawHeader(const GfxRenderer& renderer, Rect rect, const char* title,
+                                  const char* subtitle) const {
+  (void)subtitle;
   // Home screen header is custom-rendered in drawRecentBookCover.
   if (title == nullptr) {
     return;
   }
   const int sidePadding = RoundedRaffMetrics::values.contentSidePadding;
+  const int titleX = rect.x + sidePadding;
   const int titleY = rect.y + 14;
 
   const bool showBatteryPercentage =
@@ -72,7 +75,7 @@ void RoundedRaffTheme::drawHeader(const GfxRenderer& renderer, Rect rect, const 
   const int batteryIconX = rect.x + rect.width - sidePadding - RoundedRaffMetrics::values.batteryWidth;
   int batteryGroupLeftX = batteryIconX;
   if (showBatteryPercentage) {
-    const uint16_t percentage = battery.readPercentage();
+    const uint16_t percentage = powerManager.getBatteryPercentage();
     const auto percentageText = std::to_string(percentage) + "%";
     batteryGroupLeftX -= renderer.getTextWidth(SMALL_FONT_ID, percentageText.c_str()) + batteryPercentSpacing;
   }
@@ -86,9 +89,9 @@ void RoundedRaffTheme::drawHeader(const GfxRenderer& renderer, Rect rect, const 
     renderer.fillRect(batteryIconX - maxTextWidth - batteryPercentSpacing, rect.y + 14, clearW, clearH, false);
   }
 
-  auto headerTitle =
-      renderer.truncatedText(kTitleFontId, title, batteryGroupLeftX - sidePadding - 20, EpdFontFamily::BOLD);
-  renderer.drawText(kTitleFontId, rect.x + sidePadding, titleY, headerTitle.c_str(), true, EpdFontFamily::BOLD);
+  const int maxTextWidth = std::max(0, batteryGroupLeftX - 20 - titleX);
+  auto headerTitle = renderer.truncatedText(kTitleFontId, title, maxTextWidth, EpdFontFamily::BOLD);
+  renderer.drawText(kTitleFontId, titleX, titleY, headerTitle.c_str(), true, EpdFontFamily::BOLD);
   drawBatteryRight(renderer,
                    Rect{batteryIconX, rect.y + 14, RoundedRaffMetrics::values.batteryWidth,
                         RoundedRaffMetrics::values.batteryHeight},
@@ -132,13 +135,15 @@ void RoundedRaffTheme::drawRecentBookCover(GfxRenderer& renderer, Rect rect, con
   const int sidePadding = RoundedRaffMetrics::values.contentSidePadding;
   const int originX = rect.x;
   const int originY = rect.y;
+  const int titleX = originX + sidePadding;
+  const int titleY = originY + 18;
 
   const bool showBatteryPercentage =
       SETTINGS.hideBatteryPercentage != CrossPointSettings::HIDE_BATTERY_PERCENTAGE::HIDE_ALWAYS;
   const int batteryIconX = originX + rect.width - sidePadding - RoundedRaffMetrics::values.batteryWidth;
   int batteryGroupLeftX = batteryIconX;
   if (showBatteryPercentage) {
-    const uint16_t percentage = battery.readPercentage();
+    const uint16_t percentage = powerManager.getBatteryPercentage();
     const auto percentageText = std::to_string(percentage) + "%";
     batteryGroupLeftX -= renderer.getTextWidth(SMALL_FONT_ID, percentageText.c_str()) + batteryPercentSpacing;
   }
@@ -152,8 +157,6 @@ void RoundedRaffTheme::drawRecentBookCover(GfxRenderer& renderer, Rect rect, con
     renderer.fillRect(batteryIconX - maxTextWidth - batteryPercentSpacing, titleY + 2, clearW, clearH, false);
   }
 
-  const int titleX = originX + sidePadding;
-  const int titleY = originY + 18;
   const int maxTextWidth = batteryGroupLeftX - 20 - titleX;  // Keep 20px gap before battery group
   if (hasContinueReading && maxTextWidth > 40) {
     constexpr int titleAuthorGap = 6;
@@ -289,7 +292,7 @@ void RoundedRaffTheme::drawRecentBookCover(GfxRenderer& renderer, Rect rect, con
 
 void RoundedRaffTheme::drawButtonMenu(GfxRenderer& renderer, Rect rect, int buttonCount, int selectedIndex,
                                       const std::function<std::string(int index)>& buttonLabel,
-                                      const std::function<std::string(int index)>& rowIcon) const {
+                                      const std::function<UIIcon(int index)>& rowIcon) const {
   (void)rowIcon;
   const int sidePadding = RoundedRaffMetrics::values.contentSidePadding;
   const int rowX = rect.x + sidePadding;
@@ -327,10 +330,11 @@ void RoundedRaffTheme::drawButtonMenu(GfxRenderer& renderer, Rect rect, int butt
 void RoundedRaffTheme::drawList(const GfxRenderer& renderer, Rect rect, int itemCount, int selectedIndex,
                                 const std::function<std::string(int index)>& rowTitle,
                                 const std::function<std::string(int index)>& rowSubtitle,
-                                const std::function<std::string(int index)>& rowIcon,
-                                const std::function<std::string(int index)>& rowValue) const {
+                                const std::function<UIIcon(int index)>& rowIcon,
+                                const std::function<std::string(int index)>& rowValue, bool highlightValue) const {
   (void)rowIcon;
-  const bool hasSubtitle = rowSubtitle != nullptr;
+  (void)highlightValue;
+  const bool hasSubtitle = static_cast<bool>(rowSubtitle);
   const int titleLineHeight = renderer.getLineHeight(kTitleFontId);
   const int subtitleLineHeight = renderer.getLineHeight(kSubtitleFontId);
   constexpr int subtitleTopPadding = 10;
@@ -355,7 +359,7 @@ void RoundedRaffTheme::drawList(const GfxRenderer& renderer, Rect rect, int item
     constexpr int kMinTitleWidth = 40;
     constexpr int kMinValueGap = kInteractiveInsetX;
     int textAreaWidth = rowWidth - kInteractiveInsetX * 2;
-    if (rowValue != nullptr) {
+    if (rowValue) {
       std::string valueText = rowValue(i);
       if (!valueText.empty()) {
         const int maxValueWidth = std::max(0, rowWidth - kInteractiveInsetX * 2 - kMinValueGap - kMinTitleWidth);

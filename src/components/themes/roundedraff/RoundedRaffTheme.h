@@ -26,14 +26,19 @@ constexpr ThemeMetrics values = {.batteryWidth = 15,
                                  .homeRecentBooksCount = 1,
                                  .buttonHintsHeight = 40,
                                  .sideButtonHintsWidth = 30,
-                                 .versionTextRightX = 20,
-                                 .versionTextY = 738,
-                                 .bookProgressBarHeight = 4};
+                                 .progressBarHeight = 16,
+                                 .bookProgressBarHeight = 4,
+                                 .keyboardKeyWidth = 22,
+                                 .keyboardKeyHeight = 30,
+                                 .keyboardKeySpacing = 10,
+                                 .keyboardBottomAligned = false,
+                                 .keyboardCenteredText = false};
 }
 
 class RoundedRaffTheme : public BaseTheme {
  public:
-  void drawHeader(const GfxRenderer& renderer, Rect rect, const char* title) const override;
+  void drawHeader(const GfxRenderer& renderer, Rect rect, const char* title,
+                  const char* subtitle = nullptr) const override;
   void drawTabBar(const GfxRenderer& renderer, Rect rect, const std::vector<TabInfo>& tabs,
                   bool selected) const override;
   void drawRecentBookCover(GfxRenderer& renderer, Rect rect, const std::vector<RecentBook>& recentBooks,
@@ -41,12 +46,13 @@ class RoundedRaffTheme : public BaseTheme {
                            std::function<bool()> storeCoverBuffer) const override;
   void drawButtonMenu(GfxRenderer& renderer, Rect rect, int buttonCount, int selectedIndex,
                       const std::function<std::string(int index)>& buttonLabel,
-                      const std::function<std::string(int index)>& rowIcon) const override;
+                      const std::function<UIIcon(int index)>& rowIcon) const override;
   void drawList(const GfxRenderer& renderer, Rect rect, int itemCount, int selectedIndex,
                 const std::function<std::string(int index)>& rowTitle,
-                const std::function<std::string(int index)>& rowSubtitle,
-                const std::function<std::string(int index)>& rowIcon,
-                const std::function<std::string(int index)>& rowValue) const override;
+                const std::function<std::string(int index)>& rowSubtitle = nullptr,
+                const std::function<UIIcon(int index)>& rowIcon = nullptr,
+                const std::function<std::string(int index)>& rowValue = nullptr,
+                bool highlightValue = false) const override;
   void drawButtonHints(GfxRenderer& renderer, const char* btn1, const char* btn2, const char* btn3,
                        const char* btn4) const override;
   bool homeMenuShowsContinueReading() const { return true; }

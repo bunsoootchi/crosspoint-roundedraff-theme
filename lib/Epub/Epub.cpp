@@ -258,16 +258,16 @@ bool Epub::parseTocNavFile() const {
 }
 
 bool Epub::loadCssRulesFromCache() const {
-  FsFile cssCacheFile;
-  if (Storage.openFileForRead("EBP", getCssRulesCache(), cssCacheFile)) {
-    if (cssParser->loadFromCache(cssCacheFile)) {
-      cssCacheFile.close();
-      LOG_DBG("EBP", "Loaded CSS rules from cache");
-      return true;
-    }
-    cssCacheFile.close();
-    LOG_DBG("EBP", "CSS cache invalid, reparsing");
+  if (!cssParser) {
+    return false;
   }
+
+  if (cssParser->loadFromCache()) {
+    LOG_DBG("EBP", "Loaded CSS rules from cache");
+    return true;
+  }
+
+  LOG_DBG("EBP", "CSS cache invalid, reparsing");
   return false;
 }
 
