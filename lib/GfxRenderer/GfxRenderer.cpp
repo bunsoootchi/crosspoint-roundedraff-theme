@@ -404,6 +404,28 @@ void GfxRenderer::drawRoundedRect(const int x, const int y, const int width, con
   }
 }
 
+void GfxRenderer::maskRoundedRectOutsideCorners(const int x, const int y, const int width, const int height,
+                                                const int radius, const bool state) const {
+  if (radius <= 0) {
+    return;
+  }
+
+  const int rr = radius - 1;
+  const int rr2 = rr * rr;
+  for (int dy = 0; dy < radius; dy++) {
+    for (int dx = 0; dx < radius; dx++) {
+      const int tx = rr - dx;
+      const int ty = rr - dy;
+      if (tx * tx + ty * ty > rr2) {
+        drawPixel(x + dx, y + dy, state);                           // top-left
+        drawPixel(x + width - 1 - dx, y + dy, state);               // top-right
+        drawPixel(x + dx, y + height - 1 - dy, state);              // bottom-left
+        drawPixel(x + width - 1 - dx, y + height - 1 - dy, state);  // bottom-right
+      }
+    }
+  }
+}
+
 void GfxRenderer::fillRect(const int x, const int y, const int width, const int height, const bool state) const {
   for (int fillY = y; fillY < y + height; fillY++) {
     drawLine(x, fillY, x + width - 1, fillY, state);

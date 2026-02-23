@@ -26,25 +26,6 @@ constexpr int kTitleFontId = UI_12_FONT_ID;     // Requested main title size: 12
 constexpr int kSubtitleFontId = SMALL_FONT_ID;  // Requested subtitle size: 8px
 constexpr int kGuideFontId = SMALL_FONT_ID;     // Closest available to requested 6px
 
-void maskRoundedRectOutsideCorners(const GfxRenderer& renderer, int x, int y, int width, int height, int radius) {
-  if (radius <= 0) return;
-
-  const int rr = radius - 1;
-  const int rr2 = rr * rr;
-  for (int dy = 0; dy < radius; dy++) {
-    for (int dx = 0; dx < radius; dx++) {
-      const int tx = rr - dx;
-      const int ty = rr - dy;
-      if (tx * tx + ty * ty > rr2) {
-        renderer.drawPixel(x + dx, y + dy, false);                           // top-left
-        renderer.drawPixel(x + width - 1 - dx, y + dy, false);               // top-right
-        renderer.drawPixel(x + dx, y + height - 1 - dy, false);              // bottom-left
-        renderer.drawPixel(x + width - 1 - dx, y + height - 1 - dy, false);  // bottom-right
-      }
-    }
-  }
-}
-
 std::string sanitizeButtonLabel(std::string label) {
   // Remove common directional prefixes/symbols (e.g. "<< Home", unsupported icon glyphs).
   while (!label.empty() && !std::isalnum(static_cast<unsigned char>(label[0]))) {
@@ -188,7 +169,7 @@ void RoundedRaffTheme::drawRecentBookCover(GfxRenderer& renderer, Rect rect, con
   if (hasContinueReading && (!coverRendered || !bufferRestored)) {
     // Draw a lightweight base layer behind cover art (keeps the gray background look without bitmap IO).
     renderer.fillRectDither(coverX, coverY, coverWidth, coverHeight, Color::LightGray);
-    maskRoundedRectOutsideCorners(renderer, coverX, coverY, coverWidth, coverHeight, kCoverRadius);
+    renderer.maskRoundedRectOutsideCorners(coverX, coverY, coverWidth, coverHeight, kCoverRadius);
 
     const std::string thumbBmpPath = UITheme::getCoverThumbPath(recentBooks[0].coverBmpPath, sourceThumbHeight);
     std::vector<std::string> candidatePaths;
@@ -250,7 +231,7 @@ void RoundedRaffTheme::drawRecentBookCover(GfxRenderer& renderer, Rect rect, con
       const int drawY = targetY + (targetHeight - drawHeight) / 2;
       renderer.drawBitmap(bitmap, drawX, drawY, drawWidth, drawHeight, 0.0f, 0.0f);
       // Clip bitmap corners so image respects rounded card border.
-      maskRoundedRectOutsideCorners(renderer, coverX, coverY, coverWidth, coverHeight, kCoverRadius);
+      renderer.maskRoundedRectOutsideCorners(coverX, coverY, coverWidth, coverHeight, kCoverRadius);
       coverBufferStored = storeCoverBuffer();
       coverRendered = true;
       file.close();
@@ -260,7 +241,7 @@ void RoundedRaffTheme::drawRecentBookCover(GfxRenderer& renderer, Rect rect, con
 
   if (!coverRendered) {
     renderer.fillRectDither(coverX, coverY, coverWidth, coverHeight, Color::LightGray);
-    maskRoundedRectOutsideCorners(renderer, coverX, coverY, coverWidth, coverHeight, kCoverRadius);
+    renderer.maskRoundedRectOutsideCorners(coverX, coverY, coverWidth, coverHeight, kCoverRadius);
     renderer.drawCenteredText(kTitleFontId, coverY + coverHeight / 2 - renderer.getLineHeight(kTitleFontId) / 2,
                               hasContinueReading ? "No cover preview" : "No open book");
   }

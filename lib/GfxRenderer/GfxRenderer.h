@@ -93,6 +93,9 @@ class GfxRenderer {
   void drawRoundedRect(int x, int y, int width, int height, int lineWidth, int cornerRadius, bool state) const;
   void drawRoundedRect(int x, int y, int width, int height, int lineWidth, int cornerRadius, bool roundTopLeft,
                        bool roundTopRight, bool roundBottomLeft, bool roundBottomRight, bool state) const;
+  // Helper: clear/fill outside the corners of a rounded rectangle by masking pixels outside the corner arcs.
+  // Default state=false is useful for clearing pixels to white.
+  void maskRoundedRectOutsideCorners(int x, int y, int width, int height, int radius, bool state = false) const;
   void fillRect(int x, int y, int width, int height, bool state = true) const;
   void fillRectDither(int x, int y, int width, int height, Color color) const;
   void fillRoundedRect(int x, int y, int width, int height, int cornerRadius, Color color) const;
