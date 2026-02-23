@@ -399,9 +399,10 @@ void RoundedRaffTheme::drawButtonHints(GfxRenderer& renderer, const char* btn1, 
   const int leftGroupX = sidePadding;
   const int rightGroupX = leftGroupX + groupWidth + groupGap;
   const std::string backLabel = backDisabled ? "" : sanitizeButtonLabel(std::string(btn1));
-  const std::string selectText = sanitizeButtonLabel((btn2 && btn2[0] != '\0') ? std::string(btn2) : "SELECT");
-  const std::string upText = sanitizeButtonLabel((btn3 && btn3[0] != '\0') ? std::string(btn3) : "UP");
-  const std::string downText = sanitizeButtonLabel((btn4 && btn4[0] != '\0') ? std::string(btn4) : "DOWN");
+  // Callers should provide the button labels. If a label is not specified, it should render empty.
+  const std::string selectText = (btn2 && btn2[0] != '\0') ? sanitizeButtonLabel(std::string(btn2)) : "";
+  const std::string upText = (btn3 && btn3[0] != '\0') ? sanitizeButtonLabel(std::string(btn3)) : "";
+  const std::string downText = (btn4 && btn4[0] != '\0') ? sanitizeButtonLabel(std::string(btn4)) : "";
 
   renderer.drawRoundedRect(leftGroupX, hintY, groupWidth, hintHeight, 2, kBottomRadius, true);
   const int selectWidth = renderer.getTextWidth(kGuideFontId, selectText.c_str(), EpdFontFamily::REGULAR);
