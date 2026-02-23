@@ -78,9 +78,7 @@ void RoundedRaffTheme::drawHeader(const GfxRenderer& renderer, Rect rect, const 
     const uint16_t percentage = powerManager.getBatteryPercentage();
     const auto percentageText = std::to_string(percentage) + "%";
     batteryGroupLeftX -= renderer.getTextWidth(SMALL_FONT_ID, percentageText.c_str()) + batteryPercentSpacing;
-  }
 
-  if (showBatteryPercentage) {
     // Clear a fixed-width area for the battery percentage to avoid ghosting when digit count changes (e.g. 100% ->
     // 99%).
     const int maxTextWidth = renderer.getTextWidth(SMALL_FONT_ID, "100%");
@@ -146,9 +144,7 @@ void RoundedRaffTheme::drawRecentBookCover(GfxRenderer& renderer, Rect rect, con
     const uint16_t percentage = powerManager.getBatteryPercentage();
     const auto percentageText = std::to_string(percentage) + "%";
     batteryGroupLeftX -= renderer.getTextWidth(SMALL_FONT_ID, percentageText.c_str()) + batteryPercentSpacing;
-  }
 
-  if (showBatteryPercentage) {
     // Clear a fixed-width area for the battery percentage to avoid ghosting when digit count changes (e.g. 100% ->
     // 99%).
     const int maxTextWidth = renderer.getTextWidth(SMALL_FONT_ID, "100%");
