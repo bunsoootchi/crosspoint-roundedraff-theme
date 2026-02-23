@@ -257,20 +257,6 @@ bool Epub::parseTocNavFile() const {
   return true;
 }
 
-bool Epub::loadCssRulesFromCache() const {
-  if (!cssParser) {
-    return false;
-  }
-
-  if (cssParser->loadFromCache()) {
-    LOG_DBG("EBP", "Loaded CSS rules from cache");
-    return true;
-  }
-
-  LOG_DBG("EBP", "CSS cache invalid, reparsing");
-  return false;
-}
-
 void Epub::parseCssFiles() const {
   // Maximum CSS file size we'll attempt to parse (uncompressed)
   // Larger files risk memory exhaustion on ESP32
