@@ -1,10 +1,5 @@
 # CrossPoint Reader
 
-This adds a custom theme to the Crosspoint firmware. RoundedRaff is inspired by MinUI and aims to give a clean,
-minimalist look to your Xteink X4.
-
-![RoundedRaff theme screenshot](./docs/images/roundedraff.png)
-
 Firmware for the **Xteink X4** e-paper display reader (unaffiliated with Xteink).
 Built using **PlatformIO** and targeting the **ESP32-C3** microcontroller.
 
