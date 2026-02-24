@@ -43,7 +43,8 @@ class Atkinson1BitDitherer {
     // Apply brightness/contrast/gamma adjustments
     gray = adjustPixel(gray);
     // Thumbnails tend to look overly dark in 1-bit; bias slightly toward white.
-    constexpr int kThumbBrightnessBias = 18;
+    // Tune for e-ink: 1-bit thumbs tend to crush midtones; bias toward white to keep covers readable.
+    constexpr int kThumbBrightnessBias = 30;
     gray += kThumbBrightnessBias;
     if (gray > 255) gray = 255;
 
