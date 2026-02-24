@@ -225,30 +225,32 @@ void RoundedRaffTheme::drawRecentBookCover(GfxRenderer& renderer, Rect rect, con
     renderer.fillRectDither(coverX, coverY, coverWidth, coverHeight, Color::LightGray);
     renderer.maskRoundedRectOutsideCorners(coverX, coverY, coverWidth, coverHeight, kCoverRadius);
 
-    const std::string thumbBmpPath = UITheme::getCoverThumbPath(recentBooks[0].coverBmpPath, sourceThumbHeight);
-    std::vector<std::string> candidatePaths;
-    // Fast path: use the pre-generated thumbnail first (usually much smaller than cover.bmp).
-    candidatePaths.push_back(thumbBmpPath);
+	    const std::string thumbBmpPath = UITheme::getCoverThumbPath(recentBooks[0].coverBmpPath, sourceThumbHeight);
+	    std::vector<std::string> candidatePaths;
 
-    const std::string coverTemplateToken = "/thumb_[HEIGHT].bmp";
-    size_t tokenPos = recentBooks[0].coverBmpPath.rfind(coverTemplateToken);
-    if (tokenPos != std::string::npos) {
-      const std::string base = recentBooks[0].coverBmpPath.substr(0, tokenPos);
-      candidatePaths.push_back(base + "/cover_crop.bmp");
-      candidatePaths.push_back(base + "/cover.bmp");
-    }
+	    const std::string coverTemplateToken = "/thumb_[HEIGHT].bmp";
+	    size_t tokenPos = recentBooks[0].coverBmpPath.rfind(coverTemplateToken);
+	    if (tokenPos != std::string::npos) {
+	      const std::string base = recentBooks[0].coverBmpPath.substr(0, tokenPos);
+	      // Prefer higher-quality 2-bit covers first (avoids the "too dark" 1-bit thumb look).
+	      candidatePaths.push_back(base + "/cover.bmp");
+	      candidatePaths.push_back(base + "/cover_crop.bmp");
+	    }
 
-    const std::string coverResolvedToken = "/thumb_";
-    size_t resolvedPos = thumbBmpPath.rfind(coverResolvedToken);
-    if (resolvedPos != std::string::npos) {
-      const std::string base = thumbBmpPath.substr(0, resolvedPos);
-      candidatePaths.push_back(base + "/cover_crop.bmp");
-      candidatePaths.push_back(base + "/cover.bmp");
-    }
+	    const std::string coverResolvedToken = "/thumb_";
+	    size_t resolvedPos = thumbBmpPath.rfind(coverResolvedToken);
+	    if (resolvedPos != std::string::npos) {
+	      const std::string base = thumbBmpPath.substr(0, resolvedPos);
+	      candidatePaths.push_back(base + "/cover.bmp");
+	      candidatePaths.push_back(base + "/cover_crop.bmp");
+	    }
 
-    for (const auto& coverBmpPath : candidatePaths) {
-      const bool isThumbCandidate = (coverBmpPath == thumbBmpPath);
-      FsFile file;
+	    // Fallback: use the pre-generated thumbnail (usually much smaller than cover.bmp).
+	    candidatePaths.push_back(thumbBmpPath);
+
+	    for (const auto& coverBmpPath : candidatePaths) {
+	      const bool isThumbCandidate = (coverBmpPath == thumbBmpPath);
+	      FsFile file;
       if (!Storage.openFileForRead("HOME", coverBmpPath, file)) {
         continue;
       }
