@@ -299,24 +299,6 @@ void RoundedRaffTheme::drawRecentBookCover(GfxRenderer& renderer, Rect rect, con
     renderer.drawCenteredText(kTitleFontId, coverY + coverHeight / 2 - renderer.getLineHeight(kTitleFontId) / 2,
                               hasContinueReading ? "No cover preview" : "No open book");
   }
-  if (hasContinueReading) {
-    const bool coverSelected = (selectorIndex == 0);
-    const char* label = tr(STR_CONTINUE_READING);
-
-    // Match the menu row vertical padding: 10px top + 10px bottom.
-    const int pillHeight = renderer.getLineHeight(kTitleFontId) + 20;
-    constexpr int kPillGapBelowCover = 14;
-    constexpr int kPillTextPaddingX = kInteractiveInsetX;
-
-    const int labelW = renderer.getTextWidth(kTitleFontId, label, EpdFontFamily::BOLD);
-    const int pillW = std::min(coverWidth, labelW + kPillTextPaddingX * 2);
-    const int pillX = coverX;
-    const int pillY = coverY + coverHeight + kPillGapBelowCover;
-
-    renderer.fillRoundedRect(pillX, pillY, pillW, pillHeight, kMenuRadius, coverSelected ? Color::Black : Color::White);
-    const int textY = pillY + (pillHeight - renderer.getLineHeight(kTitleFontId)) / 2;
-    renderer.drawText(kTitleFontId, pillX + kPillTextPaddingX, textY, label, !coverSelected, EpdFontFamily::BOLD);
-  }
 
   // No outline border for the cover card; keep only rounded clipping.
 }

@@ -257,6 +257,8 @@ void HomeActivity::render(Activity::RenderLock&&) {
     menuIcons.insert(menuIcons.begin() + 2, Library);
   }
 
+  const int totalMenuItems = static_cast<int>(recentBooks.size() + menuItems.size());
+
   GUI.drawButtonMenu(
       renderer,
       [&]() {
@@ -266,9 +268,19 @@ void HomeActivity::render(Activity::RenderLock&&) {
             std::max(0, pageHeight - menuY - metrics.buttonHintsHeight - metrics.verticalSpacing /*bottom gap*/);
         return Rect{0, menuY, pageWidth, menuH};
       }(),
-      static_cast<int>(menuItems.size()), selectorIndex - recentBooks.size(),
-      [&menuItems](int index) { return std::string(menuItems[index]); },
-      [&menuIcons](int index) { return menuIcons[index]; });
+      totalMenuItems, selectorIndex,
+      [&menuItems, this](int index) {
+        if (index < static_cast<int>(recentBooks.size())) {
+          return std::string(tr(STR_CONTINUE_READING));
+        }
+        return std::string(menuItems[index - recentBooks.size()]);
+      },
+      [&menuIcons, this](int index) {
+        if (index < static_cast<int>(recentBooks.size())) {
+          return Book;
+        }
+        return menuIcons[index - recentBooks.size()];
+      });
 
   const auto labels = mappedInput.mapLabels("", tr(STR_SELECT), tr(STR_DIR_UP), tr(STR_DIR_DOWN));
   GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
