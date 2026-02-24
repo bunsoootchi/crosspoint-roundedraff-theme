@@ -264,27 +264,31 @@ void RoundedRaffTheme::drawRecentBookCover(GfxRenderer& renderer, Rect rect, con
         continue;
       }
 
-      const int targetX = coverX;
-      const int targetY = coverY;
-      const int targetWidth = coverWidth;
-      const int targetHeight = coverHeight;
+      // RoundedRaff intentionally shows the cover smaller and centered inside the rounded card.
+      // This avoids the harsh look of scaling/cropping 1-bit thumbs to full-bleed.
+      constexpr int kCoverInnerPadding = 28;
+      const int frameX = coverX + kCoverInnerPadding;
+      const int frameY = coverY + kCoverInnerPadding;
+      const int frameW = std::max(1, coverWidth - kCoverInnerPadding * 2);
+      const int frameH = std::max(1, coverHeight - kCoverInnerPadding * 2);
 
-      // Render like other themes: fill the target box and crop overflow (\"object-fit: cover\").
-      float cropX = 0.0f;
-      float cropY = 0.0f;
-      if (bitmap.getWidth() > 0 && bitmap.getHeight() > 0 && targetWidth > 0 && targetHeight > 0) {
-        const float bitmapRatio = static_cast<float>(bitmap.getWidth()) / static_cast<float>(bitmap.getHeight());
-        const float frameRatio = static_cast<float>(targetWidth) / static_cast<float>(targetHeight);
-        if (bitmapRatio > frameRatio) {
-          cropX = 1.0f - (frameRatio / bitmapRatio);
-        } else if (bitmapRatio < frameRatio) {
-          cropY = 1.0f - (bitmapRatio / frameRatio);
-        }
-        if (cropX < 0.0f) cropX = 0.0f;
-        if (cropY < 0.0f) cropY = 0.0f;
+      const int srcW = bitmap.getWidth();
+      const int srcH = bitmap.getHeight();
+      if (srcW <= 0 || srcH <= 0) {
+        file.close();
+        continue;
       }
 
-      renderer.drawBitmap(bitmap, targetX, targetY, targetWidth, targetHeight, cropX, cropY);
+      // Fit to frame (\"object-fit: contain\"), but do not upscale (keeps crispness on 1-bit thumbs).
+      const float scaleX = static_cast<float>(frameW) / static_cast<float>(srcW);
+      const float scaleY = static_cast<float>(frameH) / static_cast<float>(srcH);
+      const float scale = std::min(1.0f, std::min(scaleX, scaleY));
+      const int drawW = std::max(1, static_cast<int>(srcW * scale));
+      const int drawH = std::max(1, static_cast<int>(srcH * scale));
+      const int drawX = frameX + (frameW - drawW) / 2;
+      const int drawY = frameY + (frameH - drawH) / 2;
+
+      renderer.drawBitmap(bitmap, drawX, drawY, drawW, drawH, 0.0f, 0.0f);
       // Clip bitmap corners so image respects rounded card border.
       renderer.maskRoundedRectOutsideCorners(coverX, coverY, coverWidth, coverHeight, kCoverRadius);
       coverBufferStored = storeCoverBuffer();
