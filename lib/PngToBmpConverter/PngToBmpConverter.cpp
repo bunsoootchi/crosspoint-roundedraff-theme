@@ -832,7 +832,6 @@ bool PngToBmpConverter::pngFileToBmpStreamWithSize(FsFile& pngFile, Print& bmpOu
 
 bool PngToBmpConverter::pngFileTo1BitBmpStreamWithSize(FsFile& pngFile, Print& bmpOut, int targetMaxWidth,
                                                        int targetMaxHeight) {
-  // For thumbnails we want to *fit* within the target box (not fill+crop), otherwise the output dimensions can
-  // exceed the requested bounds and cause layout issues in themes that assume a max-size thumbnail.
-  return pngFileToBmpStreamInternal(pngFile, bmpOut, targetMaxWidth, targetMaxHeight, true, false);
+  // Thumbnails are expected to fill their target box (with cropping when needed).
+  return pngFileToBmpStreamInternal(pngFile, bmpOut, targetMaxWidth, targetMaxHeight, true, true);
 }

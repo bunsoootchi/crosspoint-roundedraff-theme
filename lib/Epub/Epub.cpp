@@ -638,6 +638,18 @@ std::string Epub::getThumbBmpPath() const { return cachePath + "/thumb_[HEIGHT].
 std::string Epub::getThumbBmpPath(int height) const { return cachePath + "/thumb_" + std::to_string(height) + ".bmp"; }
 
 bool Epub::generateThumbBmp(int height) const {
+
+  const std::string thumbMarkerPath = cachePath + "/thumb_v3.marker";
+  if (!Storage.exists(thumbMarkerPath.c_str())) {
+    // One-time invalidation: older builds produced padded thumbnails.
+    Storage.remove(getThumbBmpPath(height).c_str());
+    setupCacheDir();
+    FsFile markerFile;
+    if (Storage.openFileForWrite("EBP", thumbMarkerPath, markerFile)) {
+      markerFile.close();
+    }
+  }
+
   // Already generated, return true
   if (Storage.exists(getThumbBmpPath(height).c_str())) {
     return true;
