@@ -216,8 +216,8 @@ void RoundedRaffTheme::drawRecentBookCover(GfxRenderer& renderer, Rect rect, con
   const int coverY = titleY + renderer.getLineHeight(kTitleFontId) + 20;  // 20px gap below top title+battery bar
   const int coverWidth = rect.width - sidePadding * 2;
   const int coverHeight = RoundedRaffMetrics::values.homeCoverHeight;
-  // Prefer smaller thumbs for speed; we still scale to fill the card.
-  const int sourceThumbHeight = coverHeight;
+  // Use a larger source thumb so the cover can fill the card without looking too sparse.
+  const int sourceThumbHeight = coverHeight * 2;
 
   // Use cached cover buffer when available; redraw only when needed for responsiveness.
   if (hasContinueReading && (!coverRendered || !bufferRestored)) {

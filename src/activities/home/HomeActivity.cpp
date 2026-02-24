@@ -63,34 +63,17 @@ void HomeActivity::loadRecentCovers(int coverHeight) {
   recentsLoading = true;
   bool showingLoading = false;
   Rect popupRect;
-  const bool isRoundedRaff = (SETTINGS.uiTheme == CrossPointSettings::UI_THEME::ROUNDEDRAFF);
 
   int progress = 0;
   for (RecentBook& book : recentBooks) {
     if (!book.coverBmpPath.empty()) {
       std::string coverPath = UITheme::getCoverThumbPath(book.coverBmpPath, coverHeight);
-      if (!Storage.exists(coverPath.c_str()) || isRoundedRaff) {
+      if (!Storage.exists(coverPath.c_str())) {
         // If epub, try to load the metadata for title/author and cover
         if (StringUtils::checkFileExtension(book.path, ".epub")) {
           Epub epub(book.path, "/.crosspoint");
           // Skip loading css since we only need metadata here
           epub.load(false, true);
-
-          if (isRoundedRaff) {
-            // RoundedRaff prefers the 2-bit /cover.bmp (better quality than 1-bit thumbs).
-            const std::string coverBmpPath = epub.getCoverBmpPath(false);
-            if (!Storage.exists(coverBmpPath.c_str())) {
-              if (!showingLoading) {
-                showingLoading = true;
-                popupRect = GUI.drawPopup(renderer, tr(STR_LOADING_POPUP));
-              }
-              GUI.fillPopupProgress(renderer, popupRect, 10 + progress * (90 / recentBooks.size()));
-              (void)epub.generateCoverBmp(false, false);
-              coverRendered = false;
-              requestUpdate();
-            }
-            continue;
-          }
 
           // Try to generate thumbnail image for Continue Reading card
           if (!showingLoading) {
@@ -110,21 +93,6 @@ void HomeActivity::loadRecentCovers(int coverHeight) {
           // Handle XTC file
           Xtc xtc(book.path, "/.crosspoint");
           if (xtc.load()) {
-            if (isRoundedRaff) {
-              const std::string coverBmpPath = xtc.getCoverBmpPath();
-              if (!Storage.exists(coverBmpPath.c_str())) {
-                if (!showingLoading) {
-                  showingLoading = true;
-                  popupRect = GUI.drawPopup(renderer, tr(STR_LOADING_POPUP));
-                }
-                GUI.fillPopupProgress(renderer, popupRect, 10 + progress * (90 / recentBooks.size()));
-                (void)xtc.generateCoverBmp();
-                coverRendered = false;
-                requestUpdate();
-              }
-              continue;
-            }
-
             // Try to generate thumbnail image for Continue Reading card
             if (!showingLoading) {
               showingLoading = true;
