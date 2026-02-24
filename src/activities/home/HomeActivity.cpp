@@ -263,7 +263,8 @@ void HomeActivity::render(Activity::RenderLock&&) {
       renderer,
       [&]() {
         // Menu sits between the cover tile and the bottom button hints.
-        const int menuY = metrics.homeTopPadding + metrics.homeCoverTileHeight + metrics.verticalSpacing;
+        constexpr int kHomeMenuGap = 10;
+        const int menuY = metrics.homeTopPadding + metrics.homeCoverTileHeight + metrics.verticalSpacing + kHomeMenuGap;
         const int menuH =
             std::max(0, pageHeight - menuY - metrics.buttonHintsHeight - metrics.verticalSpacing /*bottom gap*/);
         return Rect{0, menuY, pageWidth, menuH};
