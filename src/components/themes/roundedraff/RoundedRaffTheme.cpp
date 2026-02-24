@@ -216,8 +216,8 @@ void RoundedRaffTheme::drawRecentBookCover(GfxRenderer& renderer, Rect rect, con
   const int coverY = titleY + renderer.getLineHeight(kTitleFontId) + 20;  // 20px gap below top title+battery bar
   const int coverWidth = rect.width - sidePadding * 2;
   const int coverHeight = RoundedRaffMetrics::values.homeCoverHeight;
-  // Use a larger source thumb so the cover can fill the card without looking too sparse.
-  const int sourceThumbHeight = coverHeight * 2;
+  // Use the standard cached thumb size. Do not fall back to cover.bmp to keep Home/sleep-wake snappy.
+  const int sourceThumbHeight = coverHeight;
 
   // Use cached cover buffer when available; redraw only when needed for responsiveness.
   if (hasContinueReading && (!coverRendered || !bufferRestored)) {
@@ -230,21 +230,7 @@ void RoundedRaffTheme::drawRecentBookCover(GfxRenderer& renderer, Rect rect, con
     // Fast path: use the pre-generated thumbnail first (usually much smaller than cover.bmp).
     candidatePaths.push_back(thumbBmpPath);
 
-    const std::string coverTemplateToken = "/thumb_[HEIGHT].bmp";
-    size_t tokenPos = recentBooks[0].coverBmpPath.rfind(coverTemplateToken);
-    if (tokenPos != std::string::npos) {
-      const std::string base = recentBooks[0].coverBmpPath.substr(0, tokenPos);
-      candidatePaths.push_back(base + "/cover_crop.bmp");
-      candidatePaths.push_back(base + "/cover.bmp");
-    }
-
-    const std::string coverResolvedToken = "/thumb_";
-    size_t resolvedPos = thumbBmpPath.rfind(coverResolvedToken);
-    if (resolvedPos != std::string::npos) {
-      const std::string base = thumbBmpPath.substr(0, resolvedPos);
-      candidatePaths.push_back(base + "/cover_crop.bmp");
-      candidatePaths.push_back(base + "/cover.bmp");
-    }
+    // Intentionally do not try /cover.bmp or /cover_crop.bmp. Those are large and make wake/home sluggish.
 
     for (const auto& coverBmpPath : candidatePaths) {
       const bool isThumbCandidate = (coverBmpPath == thumbBmpPath);
