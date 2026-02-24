@@ -290,7 +290,9 @@ void HomeActivity::render(Activity::RenderLock&&) {
     requestUpdate();
   } else if (!recentsLoaded && !recentsLoading) {
     recentsLoading = true;
-    const int coverLoadHeight = includeContinueInMenu ? metrics.homeCoverHeight * 2 : metrics.homeCoverHeight;
+    // RoundedRaff uses the same cached thumb pipeline as other themes; keep the requested thumb size stable
+    // to avoid slow wake/home renders and missing cache hits.
+    const int coverLoadHeight = metrics.homeCoverHeight;
     loadRecentCovers(coverLoadHeight);
   }
 }

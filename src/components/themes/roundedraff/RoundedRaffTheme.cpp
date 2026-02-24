@@ -230,23 +230,8 @@ void RoundedRaffTheme::drawRecentBookCover(GfxRenderer& renderer, Rect rect, con
     // Fast path: use the pre-generated thumbnail first.
     candidatePaths.push_back(thumbBmpPath);
 
-    // Fallbacks: if the thumb doesn't exist, try existing cached cover BMPs (but do NOT generate them here).
-    // This improves UX (some users may have cover.bmp from earlier builds) while keeping Home fast.
-    const std::string coverTemplateToken = "/thumb_[HEIGHT].bmp";
-    size_t tokenPos = recentBooks[0].coverBmpPath.rfind(coverTemplateToken);
-    if (tokenPos != std::string::npos) {
-      const std::string base = recentBooks[0].coverBmpPath.substr(0, tokenPos);
-      candidatePaths.push_back(base + "/cover.bmp");
-      candidatePaths.push_back(base + "/cover_crop.bmp");
-    }
-
-    const std::string coverResolvedToken = "/thumb_";
-    size_t resolvedPos = thumbBmpPath.rfind(coverResolvedToken);
-    if (resolvedPos != std::string::npos) {
-      const std::string base = thumbBmpPath.substr(0, resolvedPos);
-      candidatePaths.push_back(base + "/cover.bmp");
-      candidatePaths.push_back(base + "/cover_crop.bmp");
-    }
+    // Intentionally no fallbacks to /cover.bmp or /cover_crop.bmp here.
+    // Those are large and can make wake/home sluggish. If the thumb is missing, show "No cover preview".
 
     for (const auto& coverBmpPath : candidatePaths) {
       const bool isThumbCandidate = (coverBmpPath == thumbBmpPath);
