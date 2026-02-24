@@ -59,6 +59,27 @@ void HomeActivity::loadRecentCovers(int coverHeight) {
   for (RecentBook& book : recentBooks) {
     if (!book.coverBmpPath.empty()) {
       std::string coverPath = UITheme::getCoverThumbPath(book.coverBmpPath, coverHeight);
+      // If an old/incorrect thumb exists (e.g. larger than expected), remove it so it can be regenerated.
+      // Themes typically assume thumbs fit within the Continue Reading card bounds.
+      if (Storage.exists(coverPath.c_str())) {
+        FsFile thumbFile;
+        if (Storage.openFileForRead("HOME", coverPath, thumbFile)) {
+          Bitmap bitmap(thumbFile);
+          if (bitmap.parseHeaders() == BmpReaderError::Ok) {
+            const int maxThumbWidth = static_cast<int>(coverHeight * 0.6f);
+            const int maxThumbHeight = coverHeight;
+            if (bitmap.getWidth() > maxThumbWidth || bitmap.getHeight() > maxThumbHeight) {
+              thumbFile.close();
+              Storage.remove(coverPath.c_str());
+            } else {
+              thumbFile.close();
+            }
+          } else {
+            thumbFile.close();
+          }
+        }
+      }
+
       if (!Storage.exists(coverPath.c_str())) {
         // If epub, try to load the metadata for title/author and cover
         if (StringUtils::checkFileExtension(book.path, ".epub")) {
