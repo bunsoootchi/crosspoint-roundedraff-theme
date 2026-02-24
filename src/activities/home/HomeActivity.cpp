@@ -259,9 +259,13 @@ void HomeActivity::render(Activity::RenderLock&&) {
 
   GUI.drawButtonMenu(
       renderer,
-      Rect{0, metrics.homeTopPadding + metrics.homeCoverTileHeight + metrics.verticalSpacing, pageWidth,
-           pageHeight - (metrics.headerHeight + metrics.homeTopPadding + metrics.verticalSpacing * 2 +
-                         metrics.buttonHintsHeight)},
+      [&]() {
+        // Menu sits between the cover tile and the bottom button hints.
+        const int menuY = metrics.homeTopPadding + metrics.homeCoverTileHeight + metrics.verticalSpacing;
+        const int menuH =
+            std::max(0, pageHeight - menuY - metrics.buttonHintsHeight - metrics.verticalSpacing /*bottom gap*/);
+        return Rect{0, menuY, pageWidth, menuH};
+      }(),
       static_cast<int>(menuItems.size()), selectorIndex - recentBooks.size(),
       [&menuItems](int index) { return std::string(menuItems[index]); },
       [&menuIcons](int index) { return menuIcons[index]; });

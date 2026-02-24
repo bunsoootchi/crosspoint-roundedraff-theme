@@ -26,6 +26,24 @@ constexpr int kTitleFontId = UI_12_FONT_ID;     // Requested main title size: 12
 constexpr int kSubtitleFontId = SMALL_FONT_ID;  // Requested subtitle size: 8px
 constexpr int kGuideFontId = SMALL_FONT_ID;     // Closest available to requested 6px
 
+void drawScrollBar(const GfxRenderer& renderer, Rect rect, int itemCount, int pageStartIndex, int pageItems) {
+  if (itemCount <= 0 || pageItems <= 0 || itemCount <= pageItems) {
+    return;
+  }
+
+  const int barW = RoundedRaffMetrics::values.scrollBarWidth;
+  const int barX = rect.x + rect.width - RoundedRaffMetrics::values.scrollBarRightOffset - barW;
+  const int barY = rect.y;
+  const int barH = rect.height;
+
+  const int thumbH = std::max(10, (barH * pageItems) / itemCount);
+  const int maxStart = std::max(1, itemCount - pageItems);
+  const int maxTravel = std::max(1, barH - thumbH);
+  const int thumbY = barY + (pageStartIndex * maxTravel) / maxStart;
+
+  renderer.fillRect(barX, thumbY, barW, thumbH);
+}
+
 void drawBatteryIcon(const GfxRenderer& renderer, int x, int y, int battWidth, int rectHeight, uint16_t percentage) {
   // Top line
   renderer.drawLine(x + 1, y, x + battWidth - 3, y);
@@ -338,6 +356,8 @@ void RoundedRaffTheme::drawButtonMenu(GfxRenderer& renderer, Rect rect, int butt
       renderer.drawText(kTitleFontId, textX, textY, truncatedLabel.c_str(), true, EpdFontFamily::BOLD);
     }
   }
+
+  drawScrollBar(renderer, rect, buttonCount, pageStartIndex, pageItems);
 }
 
 void RoundedRaffTheme::drawList(const GfxRenderer& renderer, Rect rect, int itemCount, int selectedIndex,
@@ -414,6 +434,8 @@ void RoundedRaffTheme::drawList(const GfxRenderer& renderer, Rect rect, int item
                         EpdFontFamily::BOLD);
     }
   }
+
+  drawScrollBar(renderer, rect, itemCount, pageStartIndex, pageItems);
 }
 
 void RoundedRaffTheme::drawButtonHints(GfxRenderer& renderer, const char* btn1, const char* btn2, const char* btn3,
@@ -439,6 +461,10 @@ void RoundedRaffTheme::drawButtonHints(GfxRenderer& renderer, const char* btn1, 
   const std::string selectText = (btn2 && btn2[0] != '\0') ? sanitizeButtonLabel(std::string(btn2)) : "";
   const std::string upText = (btn3 && btn3[0] != '\0') ? sanitizeButtonLabel(std::string(btn3)) : "";
   const std::string downText = (btn4 && btn4[0] != '\0') ? sanitizeButtonLabel(std::string(btn4)) : "";
+
+  // Ensure button hints always "win" visually even if other elements accidentally render into this area.
+  renderer.fillRect(leftGroupX, hintY, groupWidth, hintHeight, false);
+  renderer.fillRect(rightGroupX, hintY, groupWidth, hintHeight, false);
 
   renderer.drawRoundedRect(leftGroupX, hintY, groupWidth, hintHeight, 2, kBottomRadius, true);
   const int selectWidth = renderer.getTextWidth(kGuideFontId, selectText.c_str(), EpdFontFamily::REGULAR);
