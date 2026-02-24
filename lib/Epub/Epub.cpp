@@ -638,7 +638,6 @@ std::string Epub::getThumbBmpPath() const { return cachePath + "/thumb_[HEIGHT].
 std::string Epub::getThumbBmpPath(int height) const { return cachePath + "/thumb_" + std::to_string(height) + ".bmp"; }
 
 bool Epub::generateThumbBmp(int height) const {
-
   // Thumb cache migration marker. Increment when the 1-bit conversion changes in a way that requires regenerating
   // cached thumbs (e.g. sizing/cropping or dithering/brightness tweaks).
   const std::string thumbMarkerPath = cachePath + "/thumb_v5.marker";
