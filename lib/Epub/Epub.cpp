@@ -641,11 +641,12 @@ bool Epub::generateThumbBmp(int height) const {
 
   // Thumb cache migration marker. Increment when the 1-bit conversion changes in a way that requires regenerating
   // cached thumbs (e.g. sizing/cropping or dithering/brightness tweaks).
-  const std::string thumbMarkerPath = cachePath + "/thumb_v4.marker";
+  const std::string thumbMarkerPath = cachePath + "/thumb_v5.marker";
   if (!Storage.exists(thumbMarkerPath.c_str())) {
     // One-time invalidation: older builds produced padded thumbnails.
     Storage.remove(getThumbBmpPath(height).c_str());
     Storage.remove((cachePath + "/thumb_v3.marker").c_str());
+    Storage.remove((cachePath + "/thumb_v4.marker").c_str());
     setupCacheDir();
     FsFile markerFile;
     if (Storage.openFileForWrite("EBP", thumbMarkerPath, markerFile)) {
