@@ -187,9 +187,14 @@ bool Section::createSectionFile(const int fontId, const float lineCompression, c
   std::string contentBase = (lastSlash != std::string::npos) ? localPath.substr(0, lastSlash + 1) : "";
   std::string imageBasePath = epub->getCachePath() + "/img_" + std::to_string(spineIndex) + "_";
 
-  const CssParser* cssParser = nullptr;
+  CssParser* cssParser = nullptr;
   if (embeddedStyle) {
     cssParser = epub->getCssParser();
+    if (cssParser) {
+      if (!cssParser->loadFromCache()) {
+        LOG_ERR("SCT", "Failed to load CSS from cache");
+      }
+    }
   }
 
   ChapterHtmlSlimParser visitor(
@@ -205,6 +210,9 @@ bool Section::createSectionFile(const int fontId, const float lineCompression, c
     LOG_ERR("SCT", "Failed to parse XML and build pages");
     file.close();
     Storage.remove(filePath.c_str());
+    if (cssParser) {
+      cssParser->clear();
+    }
     return false;
   }
 
@@ -231,6 +239,9 @@ bool Section::createSectionFile(const int fontId, const float lineCompression, c
   serialization::writePod(file, pageCount);
   serialization::writePod(file, lutOffset);
   file.close();
+  if (cssParser) {
+    cssParser->clear();
+  }
   return true;
 }
 

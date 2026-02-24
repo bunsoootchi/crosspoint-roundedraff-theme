@@ -71,5 +71,5 @@ class Epub {
 
   size_t getBookSize() const;
   float calculateProgress(int currentSpineIndex, float currentSpineRead) const;
-  const CssParser* getCssParser() const { return cssParser.get(); }
+  CssParser* getCssParser() const { return cssParser.get(); }
 };
