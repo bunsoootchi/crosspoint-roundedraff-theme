@@ -42,6 +42,10 @@ class Atkinson1BitDitherer {
   uint8_t processPixel(int gray, int x) {
     // Apply brightness/contrast/gamma adjustments
     gray = adjustPixel(gray);
+    // Thumbnails tend to look overly dark in 1-bit; bias slightly toward white.
+    constexpr int kThumbBrightnessBias = 18;
+    gray += kThumbBrightnessBias;
+    if (gray > 255) gray = 255;
 
     // Add accumulated error
     int adjusted = gray + errorRow0[x + 2];
