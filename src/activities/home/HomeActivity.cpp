@@ -20,13 +20,22 @@
 #include "util/StringUtils.h"
 
 int HomeActivity::getMenuItemCount() const {
-  int count = 4;  // My Library, Recents, File transfer, Settings
-  if (!recentBooks.empty()) {
-    count += recentBooks.size();
+  const bool isRoundedRaff = (SETTINGS.uiTheme == CrossPointSettings::UI_THEME::ROUNDEDRAFF);
+
+  int count = 4;  // Browse Files, Recents, File transfer, Settings
+
+  // Most themes treat recent-book tiles as selectable items on the home screen.
+  // RoundedRaff intentionally does not: selection is menu-driven, with an optional "Continue Reading" menu entry.
+  if (!isRoundedRaff && !recentBooks.empty()) {
+    count += static_cast<int>(recentBooks.size());
+  } else if (isRoundedRaff && !recentBooks.empty()) {
+    count += 1;  // "Continue Reading"
   }
+
   if (hasOpdsUrl) {
     count++;
   }
+
   return count;
 }
 
@@ -207,17 +216,24 @@ void HomeActivity::loop() {
   });
 
   if (mappedInput.wasReleased(MappedInputManager::Button::Confirm)) {
+    const bool isRoundedRaff = (SETTINGS.uiTheme == CrossPointSettings::UI_THEME::ROUNDEDRAFF);
+    const bool includeContinueInMenu = isRoundedRaff && !recentBooks.empty();
+
     // Calculate dynamic indices based on which options are available
     int idx = 0;
-    int menuSelectedIndex = selectorIndex - static_cast<int>(recentBooks.size());
+    // For RoundedRaff, selectorIndex refers to the menu list; for other themes it includes the recent-book tiles first.
+    int menuSelectedIndex =
+        includeContinueInMenu ? (selectorIndex - 1) : (selectorIndex - static_cast<int>(recentBooks.size()));
     const int myLibraryIdx = idx++;
     const int recentsIdx = idx++;
     const int opdsLibraryIdx = hasOpdsUrl ? idx++ : -1;
     const int fileTransferIdx = idx++;
     const int settingsIdx = idx;
 
-    if (selectorIndex < recentBooks.size()) {
+    if (!includeContinueInMenu && selectorIndex < recentBooks.size()) {
       onSelectBook(recentBooks[selectorIndex].path);
+    } else if (includeContinueInMenu && selectorIndex == 0) {
+      onSelectBook(recentBooks[0].path);
     } else if (menuSelectedIndex == myLibraryIdx) {
       onMyLibraryOpen();
     } else if (menuSelectedIndex == recentsIdx) {
@@ -236,6 +252,7 @@ void HomeActivity::render(Activity::RenderLock&&) {
   const auto& metrics = UITheme::getInstance().getMetrics();
   const auto pageWidth = renderer.getScreenWidth();
   const auto pageHeight = renderer.getScreenHeight();
+  const bool isRoundedRaff = (SETTINGS.uiTheme == CrossPointSettings::UI_THEME::ROUNDEDRAFF);
 
   renderer.clearScreen();
   bool bufferRestored = coverBufferStored && restoreCoverBuffer();
@@ -251,13 +268,24 @@ void HomeActivity::render(Activity::RenderLock&&) {
                                         tr(STR_SETTINGS_TITLE)};
   std::vector<UIIcon> menuIcons = {Folder, Recent, Transfer, Settings};
 
-  if (hasOpdsUrl) {
-    // Insert OPDS Browser after My Library
-    menuItems.insert(menuItems.begin() + 2, tr(STR_OPDS_BROWSER));
-    menuIcons.insert(menuIcons.begin() + 2, Library);
+  // Keep RoundedRaff-specific menu behavior isolated to that theme.
+  const bool includeContinueInMenu = isRoundedRaff && !recentBooks.empty();
+  if (includeContinueInMenu) {
+    menuItems.insert(menuItems.begin(), tr(STR_CONTINUE_READING));
+    menuIcons.insert(menuIcons.begin(), Book);
   }
 
-  const int totalMenuItems = static_cast<int>(recentBooks.size() + menuItems.size());
+  if (hasOpdsUrl) {
+    // Insert OPDS Browser after Recents
+    const int opdsInsertIndex = includeContinueInMenu ? 3 : 2;
+    menuItems.insert(menuItems.begin() + opdsInsertIndex, tr(STR_OPDS_BROWSER));
+    menuIcons.insert(menuIcons.begin() + opdsInsertIndex, Library);
+  }
+
+  int selectedMenuIndex = selectorIndex - static_cast<int>(recentBooks.size());
+  if (includeContinueInMenu) {
+    selectedMenuIndex = selectorIndex;
+  }
 
   GUI.drawButtonMenu(
       renderer,
@@ -269,19 +297,9 @@ void HomeActivity::render(Activity::RenderLock&&) {
             std::max(0, pageHeight - menuY - metrics.buttonHintsHeight - metrics.verticalSpacing /*bottom gap*/);
         return Rect{0, menuY, pageWidth, menuH};
       }(),
-      totalMenuItems, selectorIndex,
-      [&menuItems, this](int index) {
-        if (index < static_cast<int>(recentBooks.size())) {
-          return std::string(tr(STR_CONTINUE_READING));
-        }
-        return std::string(menuItems[index - recentBooks.size()]);
-      },
-      [&menuIcons, this](int index) {
-        if (index < static_cast<int>(recentBooks.size())) {
-          return Book;
-        }
-        return menuIcons[index - recentBooks.size()];
-      });
+      static_cast<int>(menuItems.size()), selectedMenuIndex,
+      [&menuItems](int index) { return std::string(menuItems[index]); },
+      [&menuIcons](int index) { return menuIcons[index]; });
 
   const auto labels = mappedInput.mapLabels("", tr(STR_SELECT), tr(STR_DIR_UP), tr(STR_DIR_DOWN));
   GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
@@ -293,6 +311,7 @@ void HomeActivity::render(Activity::RenderLock&&) {
     requestUpdate();
   } else if (!recentsLoaded && !recentsLoading) {
     recentsLoading = true;
-    loadRecentCovers(metrics.homeCoverHeight);
+    const int coverLoadHeight = includeContinueInMenu ? metrics.homeCoverHeight * 2 : metrics.homeCoverHeight;
+    loadRecentCovers(coverLoadHeight);
   }
 }
