@@ -23,11 +23,6 @@ inline std::vector<SettingInfo> getSettingsList() {
       SettingInfo::Enum(StrId::STR_SLEEP_COVER_FILTER, &CrossPointSettings::sleepScreenCoverFilter,
                         {StrId::STR_NONE_OPT, StrId::STR_FILTER_CONTRAST, StrId::STR_INVERTED},
                         "sleepScreenCoverFilter", StrId::STR_CAT_DISPLAY),
-      SettingInfo::Enum(
-          StrId::STR_STATUS_BAR, &CrossPointSettings::statusBar,
-          {StrId::STR_NONE_OPT, StrId::STR_NO_PROGRESS, StrId::STR_STATUS_BAR_FULL_PERCENT,
-           StrId::STR_STATUS_BAR_FULL_BOOK, StrId::STR_STATUS_BAR_BOOK_ONLY, StrId::STR_STATUS_BAR_FULL_CHAPTER},
-          "statusBar", StrId::STR_CAT_DISPLAY),
       SettingInfo::Enum(StrId::STR_HIDE_BATTERY, &CrossPointSettings::hideBatteryPercentage,
                         {StrId::STR_NEVER, StrId::STR_IN_READER, StrId::STR_ALWAYS}, "hideBatteryPercentage",
                         StrId::STR_CAT_DISPLAY),
@@ -36,8 +31,9 @@ inline std::vector<SettingInfo> getSettingsList() {
           {StrId::STR_PAGES_1, StrId::STR_PAGES_5, StrId::STR_PAGES_10, StrId::STR_PAGES_15, StrId::STR_PAGES_30},
           "refreshFrequency", StrId::STR_CAT_DISPLAY),
       SettingInfo::Enum(StrId::STR_UI_THEME, &CrossPointSettings::uiTheme,
-                        {StrId::STR_THEME_CLASSIC, StrId::STR_THEME_LYRA, StrId::STR_THEME_LYRA_EXTENDED}, "uiTheme",
-                        StrId::STR_CAT_DISPLAY),
+                        {StrId::STR_THEME_CLASSIC, StrId::STR_THEME_LYRA, StrId::STR_THEME_LYRA_EXTENDED,
+                         StrId::STR_THEME_ROUNDEDRAFF},
+                        "uiTheme", StrId::STR_CAT_DISPLAY),
       SettingInfo::Toggle(StrId::STR_SUNLIGHT_FADING_FIX, &CrossPointSettings::fadingFix, "fadingFix",
                           StrId::STR_CAT_DISPLAY),
 
@@ -67,7 +63,6 @@ inline std::vector<SettingInfo> getSettingsList() {
                           StrId::STR_CAT_READER),
       SettingInfo::Toggle(StrId::STR_TEXT_AA, &CrossPointSettings::textAntiAliasing, "textAntiAliasing",
                           StrId::STR_CAT_READER),
-
       // --- Controls ---
       SettingInfo::Enum(StrId::STR_SIDE_BTN_LAYOUT, &CrossPointSettings::sideButtonLayout,
                         {StrId::STR_PREV_NEXT, StrId::STR_NEXT_PREV}, "sideButtonLayout", StrId::STR_CAT_CONTROLS),
@@ -120,5 +115,21 @@ inline std::vector<SettingInfo> getSettingsList() {
                           StrId::STR_OPDS_BROWSER),
       SettingInfo::String(StrId::STR_PASSWORD, SETTINGS.opdsPassword, sizeof(SETTINGS.opdsPassword), "opdsPassword",
                           StrId::STR_OPDS_BROWSER),
+
+      // --- Status Bar Settings (web-only, uses StatusBarSettingsActivity) ---
+      SettingInfo::Toggle(StrId::STR_CHAPTER_PAGE_COUNT, &CrossPointSettings::statusBarChapterPageCount,
+                          "statusBarChapterPageCount", StrId::STR_CUSTOMISE_STATUS_BAR),
+      SettingInfo::Toggle(StrId::STR_BOOK_PROGRESS_PERCENTAGE, &CrossPointSettings::statusBarBookProgressPercentage,
+                          "statusBarBookProgressPercentage", StrId::STR_CUSTOMISE_STATUS_BAR),
+      SettingInfo::Enum(StrId::STR_PROGRESS_BAR, &CrossPointSettings::statusBarProgressBar,
+                        {StrId::STR_BOOK, StrId::STR_CHAPTER, StrId::STR_HIDE}, "statusBarProgressBar",
+                        StrId::STR_CUSTOMISE_STATUS_BAR),
+      SettingInfo::Enum(StrId::STR_PROGRESS_BAR_THICKNESS, &CrossPointSettings::statusBarProgressBarThickness,
+                        {StrId::STR_PROGRESS_BAR_THIN, StrId::STR_PROGRESS_BAR_MEDIUM, StrId::STR_PROGRESS_BAR_THICK}),
+      SettingInfo::Enum(StrId::STR_TITLE, &CrossPointSettings::statusBarTitle,
+                        {StrId::STR_BOOK, StrId::STR_CHAPTER, StrId::STR_HIDE}, "statusBarTitle",
+                        StrId::STR_CUSTOMISE_STATUS_BAR),
+      SettingInfo::Toggle(StrId::STR_BATTERY, &CrossPointSettings::statusBarBattery, "statusBarBattery",
+                          StrId::STR_CUSTOMISE_STATUS_BAR),
   };
 }

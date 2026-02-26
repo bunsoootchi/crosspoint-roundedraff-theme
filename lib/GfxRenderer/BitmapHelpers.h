@@ -1,12 +1,18 @@
 #pragma once
 
+#include <cstdint>
 #include <cstring>
+
+struct BmpHeader;
 
 // Helper functions
 uint8_t quantize(int gray, int x, int y);
 uint8_t quantizeSimple(int gray);
 uint8_t quantize1bit(int gray, int x, int y);
 int adjustPixel(int gray);
+
+// Populates a 1-bit BMP header in the provided memory.
+void createBmpHeader(BmpHeader* bmpHeader, int width, int height);
 
 // 1-bit Atkinson dithering - better quality than noise dithering for thumbnails
 // Error distribution pattern (same as 2-bit but quantizes to 2 levels):
@@ -36,6 +42,11 @@ class Atkinson1BitDitherer {
   uint8_t processPixel(int gray, int x) {
     // Apply brightness/contrast/gamma adjustments
     gray = adjustPixel(gray);
+    // Thumbnails tend to look overly dark in 1-bit; bias slightly toward white.
+    // Tune for e-ink: 1-bit thumbs tend to crush midtones; bias toward white to keep covers readable.
+    constexpr int kThumbBrightnessBias = 45;
+    gray += kThumbBrightnessBias;
+    if (gray > 255) gray = 255;
 
     // Add accumulated error
     int adjusted = gray + errorRow0[x + 2];

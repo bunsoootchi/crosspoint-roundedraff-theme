@@ -524,10 +524,16 @@ std::string Epub::getCoverBmpPath(bool cropped) const {
   return cachePath + "/" + coverFileName + ".bmp";
 }
 
-bool Epub::generateCoverBmp(bool cropped) const {
-  // Already generated, return true
-  if (Storage.exists(getCoverBmpPath(cropped).c_str())) {
+bool Epub::generateCoverBmp(bool cropped, bool forceRegenerate) const {
+  const std::string coverMarkerPath = cachePath + "/cover_v2.marker";
+
+  // Already generated, return true unless force regeneration is requested.
+  if (!forceRegenerate && Storage.exists(getCoverBmpPath(cropped).c_str())) {
     return true;
+  }
+  if (forceRegenerate) {
+    Storage.remove(getCoverBmpPath(cropped).c_str());
+    Storage.remove(coverMarkerPath.c_str());
   }
 
   if (!bookMetadataCache || !bookMetadataCache->isLoaded()) {
@@ -562,7 +568,12 @@ bool Epub::generateCoverBmp(bool cropped) const {
       coverJpg.close();
       return false;
     }
-    const bool success = JpegToBmpConverter::jpegFileToBmpStream(coverJpg, coverBmp, cropped);
+    // Use a higher conversion target than screen size to avoid visible block/grid artifacts
+    // from aggressive downscaling in cached sleep-cover BMPs.
+    constexpr int kCoverTargetMaxWidth = 1200;
+    constexpr int kCoverTargetMaxHeight = 2000;
+    const bool success = JpegToBmpConverter::jpegFileToBmpStreamWithSize(coverJpg, coverBmp, kCoverTargetMaxWidth,
+                                                                         kCoverTargetMaxHeight);
     coverJpg.close();
     coverBmp.close();
     Storage.remove(coverJpgTempPath.c_str());
@@ -570,8 +581,19 @@ bool Epub::generateCoverBmp(bool cropped) const {
     if (!success) {
       LOG_ERR("EBP", "Failed to generate BMP from cover image");
       Storage.remove(getCoverBmpPath(cropped).c_str());
+      Storage.remove(coverMarkerPath.c_str());
     }
-    LOG_DBG("EBP", "Generated BMP from JPG cover image, success: %s", success ? "yes" : "no");
+    LOG_DBG("EBP", "Generated BMP from cover image, success: %s", success ? "yes" : "no");
+
+    // Marker avoids re-generating on every sleep; we only need a single migration off old cached covers.
+    if (success && !cropped) {
+      FsFile marker;
+      if (Storage.openFileForWrite("EBP", coverMarkerPath, marker)) {
+        marker.write('2');
+        marker.write('\n');
+        marker.close();
+      }
+    }
     return success;
   }
 
@@ -616,6 +638,21 @@ std::string Epub::getThumbBmpPath() const { return cachePath + "/thumb_[HEIGHT].
 std::string Epub::getThumbBmpPath(int height) const { return cachePath + "/thumb_" + std::to_string(height) + ".bmp"; }
 
 bool Epub::generateThumbBmp(int height) const {
+  // Thumb cache migration marker. Increment when the 1-bit conversion changes in a way that requires regenerating
+  // cached thumbs (e.g. sizing/cropping or dithering/brightness tweaks).
+  const std::string thumbMarkerPath = cachePath + "/thumb_v5.marker";
+  if (!Storage.exists(thumbMarkerPath.c_str())) {
+    // One-time invalidation: older builds produced padded thumbnails.
+    Storage.remove(getThumbBmpPath(height).c_str());
+    Storage.remove((cachePath + "/thumb_v3.marker").c_str());
+    Storage.remove((cachePath + "/thumb_v4.marker").c_str());
+    setupCacheDir();
+    FsFile markerFile;
+    if (Storage.openFileForWrite("EBP", thumbMarkerPath, markerFile)) {
+      markerFile.close();
+    }
+  }
+
   // Already generated, return true
   if (Storage.exists(getThumbBmpPath(height).c_str())) {
     return true;
